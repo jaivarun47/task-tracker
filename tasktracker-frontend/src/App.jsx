@@ -17,6 +17,7 @@ function App() {
 
   const [lists, setLists] = useState([]);
   const [cardsByListId, setCardsByListId] = useState({});
+  const [activeListId, setActiveListId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,6 +42,8 @@ function App() {
   const [showEditList, setShowEditList] = useState(false);
   const [editListId, setEditListId] = useState(null);
   const [editListName, setEditListName] = useState('');
+
+  const [showConfirmDeleteBoard, setShowConfirmDeleteBoard] = useState(false);
 
   const selectedBoard = useMemo(
     () => boards.find((b) => b.id === selectedBoardId) || null,
@@ -87,6 +90,46 @@ function App() {
     if (selectedBoardId == null) return;
     refreshBoard(selectedBoardId).catch((e) => setError(e?.message || 'Failed to load board'));
   }, [selectedBoardId]);
+
+  useEffect(() => {
+    function handleGlobalKeyDown(e) {
+      if (e.key === 'Escape') {
+        setShowCreateBoard(false);
+        setShowEditBoard(false);
+        setShowCreateList(false);
+        setShowEditList(false);
+        setCardModalOpen(false);
+        setShowConfirmDeleteBoard(false);
+        setActiveListId(null);
+        return;
+      }
+
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setShowCreateBoard(true);
+        setNewBoardName('');
+      } else if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (selectedBoardId) {
+          setShowCreateList(true);
+          setNewListName('');
+        }
+      } else if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (selectedBoardId && lists.length > 0) {
+          const targetListId = activeListId && lists.some(l => l.id === activeListId) ? activeListId : lists[0].id;
+          openCreateCard(targetListId);
+        }
+      } else if (e.altKey && e.shiftKey && e.key === 'Delete') {
+        e.preventDefault();
+        setShowConfirmDeleteBoard(true);
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedBoardId, lists, activeListId]);
 
   function openCreateCard(listId) {
     setCardModalMode('create');
@@ -136,8 +179,8 @@ function App() {
 
   async function handleDeleteBoard() {
     if (!selectedBoardId) return;
-    if (!window.confirm('Delete this board and all its lists/cards?')) return;
     await api.deleteBoard(selectedBoardId);
+    setShowConfirmDeleteBoard(false);
     setShowEditBoard(false);
     await refreshBoards();
   }
@@ -165,7 +208,6 @@ function App() {
 
   async function handleDeleteList(listId) {
     if (!selectedBoardId) return;
-    if (!window.confirm('Delete this list and all its cards?')) return;
     await api.deleteCardList(selectedBoardId, listId);
     await refreshBoard(selectedBoardId);
   }
@@ -204,7 +246,6 @@ function App() {
   }
 
   async function handleDeleteCard(listId, cardId) {
-    if (!window.confirm('Delete this card?')) return;
     await api.deleteCard(listId, cardId);
     await refreshBoard(selectedBoardId);
   }
@@ -297,8 +338,9 @@ function App() {
               {lists.map((list, idx) => (
                 <section
                   key={list.id}
-                  className="tt-column"
+                  className={`tt-column ${activeListId === list.id ? 'focus' : ''}`}
                   style={{ background: COLUMN_BACKGROUNDS[idx % COLUMN_BACKGROUNDS.length] }}
+                  onClick={() => setActiveListId(list.id)}
                 >
                   <div className="tt-col-header">
                     <div className="tt-col-title">{list.name}</div>
@@ -390,6 +432,7 @@ function App() {
             className="form-control"
             value={newBoardName}
             onChange={(e) => setNewBoardName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateBoard()}
             placeholder="e.g. My board"
           />
         </div>
@@ -410,11 +453,12 @@ function App() {
             className="form-control"
             value={editBoardName}
             onChange={(e) => setEditBoardName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleUpdateBoard()}
             placeholder="Board name"
           />
         </div>
         <div className="d-flex justify-content-between gap-2">
-          <button type="button" className="btn btn-outline-danger" onClick={handleDeleteBoard}>
+          <button type="button" className="btn btn-outline-danger" onClick={() => setShowConfirmDeleteBoard(true)}>
             Delete board
           </button>
           <div className="d-flex gap-2">
@@ -428,6 +472,18 @@ function App() {
         </div>
       </Modal>
 
+      <Modal show={showConfirmDeleteBoard} title="Delete Board?" onClose={() => setShowConfirmDeleteBoard(false)}>
+        <p className="mb-3 text-white">Are you sure you want to permanently delete this board and all of its lists and cards?</p>
+        <div className="d-flex justify-content-end gap-2">
+          <button type="button" className="btn btn-outline-secondary" onClick={() => setShowConfirmDeleteBoard(false)}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary bg-danger border-danger" onClick={handleDeleteBoard}>
+            Yes, Delete It
+          </button>
+        </div>
+      </Modal>
+
       <Modal show={showCreateList} title="Create list" onClose={() => setShowCreateList(false)}>
         <div className="mb-3">
           <label className="form-label">List name</label>
@@ -435,6 +491,7 @@ function App() {
             className="form-control"
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
             placeholder="e.g. In Progress"
           />
         </div>
@@ -455,6 +512,7 @@ function App() {
             className="form-control"
             value={editListName}
             onChange={(e) => setEditListName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleUpdateList()}
             placeholder="List name"
           />
         </div>
@@ -479,6 +537,7 @@ function App() {
             className="form-control"
             value={cardName}
             onChange={(e) => setCardName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateOrUpdateCard()}
             placeholder="e.g. Write tests"
           />
         </div>

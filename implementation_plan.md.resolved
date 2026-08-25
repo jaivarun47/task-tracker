@@ -1,0 +1,54 @@
+# Project Overhaul: JPA Cascades & DTO Redesign
+
+This plan covers the implementation of the three steps you outlined: the Entity Overhaul, Service & Repository Cleanup, and the DTO & API Layer Redesign.
+
+## User Review Required
+
+> [!WARNING]
+> **Authentication / Mock User Context**
+> Since we are setting `nullable = false` on the `Board -> User` relationship, any API call to create a `Board` will fail unless it provides a valid `User`. 
+> 
+> Because we haven't implemented full JWT login endpoints yet, **I propose we create a "Mock User" on application startup** and temporarily assign all newly created boards to this mock user's UUID. Once we implement actual authentication, we will swap this out for the logged-in user's UUID.
+>
+> **Do you approve this temporary Mock User workaround?**
+
+## Proposed Changes
+
+### Step 1: The Entity Overhaul
+
+#### [NEW] [User.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/model/User.java)
+- Create `User` entity with `UUID id` (generated) and `String email`.
+- Add `@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true) List<Board> boards`.
+
+#### [MODIFY] [Board.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/model/Board.java), [CardList.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/model/CardList.java), [Card.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/model/Card.java)
+- Replace scalar IDs (`boardId`, `listId`) with actual object references (`User user`, `Board board`, `CardList cardList`).
+- Map all parent references with `@ManyToOne(fetch = FetchType.LAZY)` and `@JoinColumn(nullable = false)`.
+- Map all child collections with `@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)`.
+
+### Step 2: The Service & Repository Cleanup
+
+#### [NEW] [UserRepository.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/repository/UserRepository.java)
+- Standard JPA repository for `User`.
+
+#### [MODIFY] Repositories
+- Update custom queries in `CardListRepository` and `CardRepository` to query by the parent object's ID (e.g., `findByBoard_Id(Long boardId)`).
+
+#### [MODIFY] [BoardService.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/service/BoardService.java) & [CardListService.java](file:///c:/Users/circu/OneDrive/Desktop/TaskTracker/tasktracker-backend/src/main/java/com/project/tasktracker/service/CardListService.java)
+- Delete manual nested loops for deletions. Use simple `repository.deleteById()`. The JPA cascades will handle the rest.
+- Ensure `@Transactional` remains on the class/methods modifying data.
+
+### Step 3: The DTO & API Layer (Redesign Ready)
+
+#### [NEW] DTO Classes (`dto/UserDto.java`, `dto/BoardDto.java`, `dto/CardListDto.java`, `dto/CardDto.java`)
+- Create standard, flat Response DTOs that do NOT contain nested lists, preventing infinite recursion and giving the frontend a clean, predictable structure. For example, `CardListDto` will contain a simple `Long boardId`.
+
+#### [NEW] Mappers (`mapper/ModelMapper.java` or manual mapper classes)
+- Create manual, static mapping functions (e.g., `toBoardDto(Board board)`) to translate Entities to DTOs. Manual mappers are safer and faster to implement than configuring MapStruct for an existing small project.
+
+#### [MODIFY] Controllers
+- Update `BoardController`, `CardListController`, and `CardController` to return these new DTOs instead of raw Entities.
+
+## Verification Plan
+1. Restart the Postgres Docker container with a clean volume (to wipe the DB) or let `ddl-auto=update` attempt the migration.
+2. Compile and run the Spring Boot application.
+3. Check the logs for Hibernate generating the foreign keys and `on delete cascade` schemas.

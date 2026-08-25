@@ -1,13 +1,13 @@
 package com.project.tasktracker.controller;
 
+import com.project.tasktracker.dto.CardListDto;
 import com.project.tasktracker.dto.CreateCardListRequest;
-import com.project.tasktracker.model.CardList;
+import com.project.tasktracker.mapper.ModelMapper;
 import com.project.tasktracker.service.CardListService;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/boards/{boardId}/lists")
@@ -21,33 +21,35 @@ public class CardListController {
     }
 
     @PostMapping
-    public CardList createCardList(
+    public CardListDto createCardList(
             @PathVariable Long boardId,
             @RequestBody CreateCardListRequest request){
 
-        return cardListService.createCardList(boardId, request);
+        return ModelMapper.toCardListDto(cardListService.createCardList(boardId, request));
     }
 
     @GetMapping
-    public List<CardList> getListsByBoard(@PathVariable Long boardId){
-        return cardListService.getListsByBoard(boardId);
+    public List<CardListDto> getListsByBoard(@PathVariable Long boardId){
+        return cardListService.getListsByBoard(boardId).stream()
+                .map(ModelMapper::toCardListDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{listId}")
-    public CardList getListById(
+    public CardListDto getListById(
             @PathVariable Long boardId,
             @PathVariable Long listId
     ) {
-        return cardListService.getListById(boardId, listId);
+        return ModelMapper.toCardListDto(cardListService.getListById(boardId, listId));
     }
 
     @PutMapping("/{listId}")
-    public CardList updateCardList(
+    public CardListDto updateCardList(
             @PathVariable Long boardId,
             @PathVariable Long listId,
             @RequestBody CreateCardListRequest request
     ) {
-        return cardListService.updateCardList(boardId, listId, request);
+        return ModelMapper.toCardListDto(cardListService.updateCardList(boardId, listId, request));
     }
 
     @DeleteMapping("/{listId}")

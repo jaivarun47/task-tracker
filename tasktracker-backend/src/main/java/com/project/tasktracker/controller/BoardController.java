@@ -1,11 +1,14 @@
 package com.project.tasktracker.controller;
 
+import com.project.tasktracker.dto.BoardDto;
 import com.project.tasktracker.dto.CreateBoardRequest;
-import com.project.tasktracker.model.Board;
+import com.project.tasktracker.mapper.ModelMapper;
 import com.project.tasktracker.service.BoardService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -18,26 +21,31 @@ public class BoardController {
     }
 
     @PostMapping
-    public Board createBoard(@RequestBody CreateBoardRequest request){
-        return boardService.createBoard(request.getName());
+    public BoardDto createBoard(
+            @RequestHeader(value = "X-Guest-User-Id", required = false) UUID userId,
+            @RequestBody CreateBoardRequest request
+    ) {
+        return ModelMapper.toBoardDto(boardService.createBoard(userId, request.getName()));
     }
 
     @GetMapping
-    public List<Board> getBoards(){
-        return boardService.getBoards();
+    public List<BoardDto> getBoards(@RequestHeader(value = "X-Guest-User-Id", required = false) UUID userId){
+        return boardService.getBoards(userId).stream()
+                .map(ModelMapper::toBoardDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{boardId}")
-    public Board getBoardById(@PathVariable Long boardId){
-        return boardService.getBoardById(boardId);
+    public BoardDto getBoardById(@PathVariable Long boardId){
+        return ModelMapper.toBoardDto(boardService.getBoardById(boardId));
     }
 
     @PutMapping("/{boardId}")
-    public Board updateBoard(
+    public BoardDto updateBoard(
             @PathVariable Long boardId,
             @RequestBody CreateBoardRequest request
     ) {
-        return boardService.updateBoard(boardId, request.getName());
+        return ModelMapper.toBoardDto(boardService.updateBoard(boardId, request.getName()));
     }
 
     @DeleteMapping("/{boardId}")

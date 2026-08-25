@@ -1,12 +1,14 @@
 package com.project.tasktracker.controller;
 
+import com.project.tasktracker.dto.CardDto;
 import com.project.tasktracker.dto.CreateCardRequest;
 import com.project.tasktracker.dto.UpdateCardRequest;
-import com.project.tasktracker.model.Card;
+import com.project.tasktracker.mapper.ModelMapper;
 import com.project.tasktracker.service.CardService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/lists/{listId}/cards")
@@ -20,33 +22,35 @@ public class CardController {
     }
 
     @PostMapping
-    public Card createCard(
+    public CardDto createCard(
             @PathVariable Long listId,
             @RequestBody CreateCardRequest request) {
 
-        return cardService.createCard(listId, request);
+        return ModelMapper.toCardDto(cardService.createCard(listId, request));
     }
 
     @GetMapping
-    public List<Card> getCardsByList(@PathVariable Long listId) {
-        return cardService.getCardsByList(listId);
+    public List<CardDto> getCardsByList(@PathVariable Long listId) {
+        return cardService.getCardsByList(listId).stream()
+                .map(ModelMapper::toCardDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{cardId}")
-    public Card getCardById(
+    public CardDto getCardById(
             @PathVariable Long listId,
             @PathVariable Long cardId
     ) {
-        return cardService.getCardById(listId, cardId);
+        return ModelMapper.toCardDto(cardService.getCardById(listId, cardId));
     }
 
     @PutMapping("/{cardId}")
-    public Card updateCard(
+    public CardDto updateCard(
             @PathVariable Long listId,
             @PathVariable Long cardId,
             @RequestBody UpdateCardRequest request
     ) {
-        return cardService.updateCard(listId, cardId, request);
+        return ModelMapper.toCardDto(cardService.updateCard(listId, cardId, request));
     }
 
     @DeleteMapping("/{cardId}")
@@ -56,4 +60,4 @@ public class CardController {
     ) {
         cardService.deleteCard(listId, cardId);
     }
-}
+}

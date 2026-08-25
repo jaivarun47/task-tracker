@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
 
-    List<Card> findByListId(Long listId);
+    List<Card> findByCardList_Id(Long listId);
 
-    void deleteByListId(Long listId);
+    void deleteByCardList_Id(Long listId);
 }

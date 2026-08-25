@@ -1,40 +1,24 @@
-package com.project.tasktracker.model;
+package com.project.tasktracker.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "cards")
-public class Card {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class CardDto {
     private Long id;
     private String name;
     private String description;
     private boolean completed;
     private LocalDateTime createdAt;
+    private Long listId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "list_id", nullable = false)
-    private CardList cardList;
+    public CardDto() {}
 
-    public Card(){
-    }
-
-    public Card(Long id, String name, String description, boolean completed, LocalDateTime createdAt, CardList cardList) {
+    public CardDto(Long id, String name, String description, boolean completed, LocalDateTime createdAt, Long listId) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.completed = completed;
         this.createdAt = createdAt;
-        this.cardList = cardList;
+        this.listId = listId;
     }
 
     public Long getId() {
@@ -77,11 +61,11 @@ public class Card {
         this.createdAt = createdAt;
     }
 
-    public CardList getCardList() {
-        return cardList;
+    public Long getListId() {
+        return listId;
     }
 
-    public void setCardList(CardList cardList) {
-        this.cardList = cardList;
+    public void setListId(Long listId) {
+        this.listId = listId;
     }
 }

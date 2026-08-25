@@ -5,6 +5,7 @@ import com.project.tasktracker.dto.UpdateCardRequest;
 import com.project.tasktracker.error.ApiException;
 import com.project.tasktracker.error.ErrorCode;
 import com.project.tasktracker.model.Card;
+import com.project.tasktracker.model.CardList;
 import com.project.tasktracker.repository.CardRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
+@Transactional
 public class CardService {
 
     private final CardListService cardListService;
@@ -24,7 +28,7 @@ public class CardService {
     }
 
     public Card createCard(Long listId, CreateCardRequest request) {
-        cardListService.getListById(listId);
+        CardList cardList = cardListService.getListById(listId);
         Card card = new Card();
         if (request.getDescription() == null || request.getDescription().isBlank()) {
             card.setDescription("No description");
@@ -32,7 +36,7 @@ public class CardService {
             card.setDescription(request.getDescription());
         }
         card.setName(request.getName());
-        card.setListId(listId);
+        card.setCardList(cardList);
         card.setCreatedAt(LocalDateTime.now());
         card.setCompleted(false);
         return cardRepository.save(card);
@@ -40,7 +44,7 @@ public class CardService {
 
     public List<Card> getCardsByList(Long listId) {
         cardListService.getListById(listId);
-        return cardRepository.findByListId(listId);
+        return cardRepository.findByCardList_Id(listId);
     }
 
     public Card getCardById(Long listId, Long cardId) {
@@ -49,7 +53,7 @@ public class CardService {
                 .findById(cardId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CARD_NOT_FOUND, "Card not found"));
 
-        if (card.getListId() == null || !card.getListId().equals(listId)) {
+        if (card.getCardList() == null || !card.getCardList().getId().equals(listId)) {
             // Avoid leaking resource relationships; treat as "not found".
             throw new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CARD_NOT_FOUND, "Card not found");
         }
@@ -84,4 +88,4 @@ public class CardService {
         getCardById(listId, cardId);
         cardRepository.deleteById(cardId);
     }
-}
+}

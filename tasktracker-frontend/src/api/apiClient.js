@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+import { getGuestId } from './guestAuth';
+
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 function unwrapApiResponse(payload) {
   // Backend wraps successful responses in:
@@ -20,6 +22,7 @@ export async function apiRequest(path, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Guest-User-Id': getGuestId(),
       ...(options.headers || {}),
     },
   });

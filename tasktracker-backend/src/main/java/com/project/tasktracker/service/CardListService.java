@@ -4,38 +4,39 @@ import com.project.tasktracker.error.ApiException;
 import com.project.tasktracker.error.ErrorCode;
 import com.project.tasktracker.model.Board;
 import com.project.tasktracker.model.CardList;
-import com.project.tasktracker.repository.CardRepository;
 import com.project.tasktracker.repository.CardListRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
+@Transactional
 public class CardListService {
 
     private final BoardService boardService;
     private final CardListRepository cardListRepository;
-    private final CardRepository cardRepository;
 
-    public CardListService(BoardService boardService, CardListRepository cardListRepository, CardRepository cardRepository) {
+    public CardListService(BoardService boardService, CardListRepository cardListRepository) {
         this.boardService = boardService;
         this.cardListRepository = cardListRepository;
-        this.cardRepository = cardRepository;
     }
 
     public CardList createCardList(Long boardId, CreateCardListRequest request) {
-        boardService.getBoardById(boardId);
+        Board board = boardService.getBoardById(boardId);
         CardList list = new CardList();
         list.setName(request.getName());
-        list.setBoardId(boardId);
+        list.setBoard(board);
         return cardListRepository.save(list);
     }
 
     public List<CardList> getListsByBoard(Long boardId) {
         boardService.getBoardById(boardId);
-        return cardListRepository.findByBoardId(boardId);
+        return cardListRepository.findByBoard_Id(boardId);
     }
+    
     public CardList getListById(Long id) {
         return cardListRepository
                 .findById(id)
@@ -45,22 +46,16 @@ public class CardListService {
     public CardList getListById(Long boardId, Long listId) {
         boardService.getBoardById(boardId);
         CardList list = getListById(listId);
-        if (list.getBoardId() == null || !list.getBoardId().equals(boardId)) {
+        if (list.getBoard() == null || !list.getBoard().getId().equals(boardId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, ErrorCode.LIST_NOT_FOUND, "List not found");
         }
         return list;
-    }
-    public void deleteList(Long id){
-        // Ensure the list exists; also keeps error semantics consistent with the rest of the API.
-        getListById(id);
-        cardRepository.deleteByListId(id);
-        cardListRepository.deleteById(id);
     }
 
     public CardList updateCardList(Long boardId, Long listId, CreateCardListRequest request) {
         boardService.getBoardById(boardId);
         CardList list = getListById(listId);
-        if (list.getBoardId() == null || !list.getBoardId().equals(boardId)) {
+        if (list.getBoard() == null || !list.getBoard().getId().equals(boardId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, ErrorCode.LIST_NOT_FOUND, "List not found");
         }
 
@@ -73,11 +68,11 @@ public class CardListService {
     public void deleteList(Long boardId, Long listId) {
         boardService.getBoardById(boardId);
         CardList list = getListById(listId);
-        if (list.getBoardId() == null || !list.getBoardId().equals(boardId)) {
+        if (list.getBoard() == null || !list.getBoard().getId().equals(boardId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, ErrorCode.LIST_NOT_FOUND, "List not found");
         }
 
-        cardRepository.deleteByListId(listId);
+        // JPA Cascade handles the deletion of cards
         cardListRepository.deleteById(listId);
     }
 }
