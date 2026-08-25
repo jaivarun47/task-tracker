@@ -22,3 +22,46 @@ A massive architectural and visual evolution. This version introduces a professi
 
 ### ⚡ Frictionless Flow
 * Removed "Are you sure?" confirmation pop-ups for Lists and Cards to facilitate instant, power-user interactions[cite: 33].
+
+---
+
+## 🚀 Running Locally
+
+### 1. Start PostgreSQL (via Docker Compose)
+```bash
+cd tasktracker-backend
+docker compose up -d
+```
+*PostgreSQL will be available at `localhost:5555`.*
+
+### 2. Start Backend (Spring Boot)
+```bash
+cd tasktracker-backend
+./mvnw spring-boot:run
+```
+*(On Windows Command Prompt / PowerShell, use `./mvnw.cmd spring-boot:run`)*
+*The backend connects to PostgreSQL on `localhost:5555` and listens on port `8080`.*
+
+### 3. Start Frontend (React + Vite)
+```bash
+cd tasktracker-frontend
+npm install
+npm run dev
+```
+*The frontend will run on `http://localhost:5173` and proxy `/api` requests to `http://localhost:8080`.*
+
+---
+
+## 🌐 Deployment Configuration
+
+The backend is configured via standard environment variables with automatic local fallbacks:
+
+| Variable | Description | Local Default | Production Example |
+| :--- | :--- | :--- | :--- |
+| `PORT` | Backend HTTP port | `8080` | `10000` (auto-assigned by platform) |
+| `DATABASE_URL` | PostgreSQL JDBC URL | `jdbc:postgresql://localhost:5555/tasktracker_db` | `jdbc:postgresql://db-host:5432/tasktracker_db?sslmode=require` |
+| `DATABASE_USERNAME` | Database username | `root` | `prod_user` |
+| `DATABASE_PASSWORD` | Database password | `password` | `prod_secure_password` |
+| `CORS_ALLOWED_ORIGINS` | Allowed frontend origins | `http://localhost:5173,http://127.0.0.1:5173` | `https://your-tasktracker.vercel.app` |
+| `JPA_DDL_AUTO` | Hibernate schema mode | `update` | `update` / `validate` |
+| `SHOW_SQL` | Log SQL queries | `true` | `false` |

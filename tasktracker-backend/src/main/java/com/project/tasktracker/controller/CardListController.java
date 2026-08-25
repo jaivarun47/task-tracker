@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/boards/{boardId}/lists")
-@CrossOrigin(origins = "http://localhost:5173")
 public class CardListController {
 
     private final CardListService cardListService;
