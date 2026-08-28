@@ -1,4 +1,4 @@
-import { getGuestId } from './guestAuth';
+import { getToken, clearToken } from './sessionManager';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -18,19 +18,27 @@ function unwrapApiResponse(payload) {
 
 export async function apiRequest(path, options = {}) {
   const url = `${API_BASE}${path}`;
+  const token = getToken();
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Guest-User-Id': getGuestId(),
-      ...(options.headers || {}),
-    },
+    headers,
   });
 
   const isJson = (res.headers.get('content-type') || '').includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
+    if (res.status === 401) {
+      clearToken();
+    }
+
     const message =
       payload && typeof payload === 'object' && payload.message
         ? payload.message
@@ -43,4 +51,3 @@ export async function apiRequest(path, options = {}) {
 
   return unwrapApiResponse(payload);
 }
-

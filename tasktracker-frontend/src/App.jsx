@@ -51,12 +51,20 @@ function App() {
   );
 
   async function refreshBoards() {
-    const nextBoards = await api.getBoards();
-    setBoards(nextBoards);
-    if (nextBoards.length > 0) {
-      setSelectedBoardId((prev) => prev ?? nextBoards[0].id);
-    } else {
-      setSelectedBoardId(null);
+    try {
+      const nextBoards = await api.getBoards();
+      setBoards(nextBoards);
+      if (nextBoards.length > 0) {
+        setSelectedBoardId((prev) => (prev && nextBoards.some((b) => b.id === prev) ? prev : nextBoards[0].id));
+      } else {
+        setSelectedBoardId(null);
+      }
+    } catch (e) {
+      if (e?.status === 401) {
+        setBoards([]);
+        setSelectedBoardId(null);
+      }
+      throw e;
     }
   }
 
@@ -74,16 +82,27 @@ function App() {
       );
       setCardsByListId(Object.fromEntries(pairs));
       setError(null);
+    } catch (e) {
+      if (e?.status === 401) {
+        setBoards([]);
+        setSelectedBoardId(null);
+        setLists([]);
+        setCardsByListId({});
+      }
+      throw e;
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    refreshBoards().catch((e) => {
-      setError(e?.message || 'Failed to load boards');
-      setLoading(false);
-    });
+    refreshBoards()
+      .catch((e) => {
+        setError(e?.message || 'Failed to load boards');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {

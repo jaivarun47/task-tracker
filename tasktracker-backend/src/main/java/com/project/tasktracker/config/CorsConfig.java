@@ -1,10 +1,14 @@
 package com.project.tasktracker.config;
 
+import com.project.tasktracker.security.CurrentUserArgumentResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.List;
 
 @Configuration
 public class CorsConfig {
@@ -12,8 +16,14 @@ public class CorsConfig {
     @Value("${cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}")
     private String[] allowedOrigins;
 
+    private final CurrentUserArgumentResolver currentUserArgumentResolver;
+
+    public CorsConfig(CurrentUserArgumentResolver currentUserArgumentResolver) {
+        this.currentUserArgumentResolver = currentUserArgumentResolver;
+    }
+
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
+    public WebMvcConfigurer webMvcConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
@@ -23,6 +33,12 @@ public class CorsConfig {
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }
+
+            @Override
+            public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+                resolvers.add(currentUserArgumentResolver);
+            }
         };
     }
-}
+}
+

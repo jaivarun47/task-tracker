@@ -1,10 +1,31 @@
 import { apiRequest } from './apiClient';
+import { hasToken, setToken, clearToken } from './sessionManager';
+
+export { hasToken, clearToken } from './sessionManager';
+
+export async function createSession() {
+  const res = await apiRequest('/api/sessions', { method: 'POST' });
+  if (res && res.token) {
+    setToken(res.token);
+  }
+  return res;
+}
+
+export async function ensureSession() {
+  if (!hasToken()) {
+    await createSession();
+  }
+}
 
 export async function getBoards() {
+  if (!hasToken()) {
+    return [];
+  }
   return apiRequest('/api/boards', { method: 'GET' });
 }
 
 export async function createBoard(name) {
+  await ensureSession();
   return apiRequest('/api/boards', { method: 'POST', body: JSON.stringify({ name }) });
 }
 
@@ -66,4 +87,3 @@ export async function deleteCard(listId, cardId) {
 export async function getCardById(listId, cardId) {
   return apiRequest(`/api/lists/${listId}/cards/${cardId}`, { method: 'GET' });
 }
-
