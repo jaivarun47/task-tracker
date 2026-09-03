@@ -1088,33 +1088,6 @@
   margin: 0;
 }
 
-.empty-board-banner {
-  position: absolute;
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface-modal);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-card);
-  padding: 24px 32px;
-  border-radius: var(--radius-lg);
-  text-align: center;
-  max-width: 420px;
-}
-
-.empty-board-content h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-heading);
-  margin-bottom: 6px;
-}
-
-.empty-board-content p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-}
-
 /* ─────────────────────────────────────────────────────────────────────────────
    7. BUTTONS DESIGN SYSTEM
    ───────────────────────────────────────────────────────────────────────────── */

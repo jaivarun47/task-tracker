@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import Icon from '../common/Icon';
 import ListColumn from './ListColumn';
-import Button from '../common/Button';
 import { useBoard } from '../../hooks/useBoard';
 import { useMasonryLayout } from '../../hooks/useMasonryLayout';
 
@@ -11,7 +10,7 @@ export default function BoardCanvas({
   onOpenDeleteList,
   onOpenEditCard,
 }) {
-  const { lists, selectedBoard, boardLoading, draggedItem, reorderList } = useBoard();
+  const { lists, selectedBoard, draggedItem, reorderList } = useBoard();
   const [isAddSlotDropTarget, setIsAddSlotDropTarget] = useState(false);
 
   const [collapsedListIds, setCollapsedListIds] = useState(() => new Set());
@@ -155,19 +154,6 @@ export default function BoardCanvas({
           </div>
         )}
       </div>
-
-      {lists.length === 0 && !boardLoading && (
-        <div className="empty-board-banner anim-fade-in">
-          <div className="empty-board-content">
-            <h3>This board has no lists</h3>
-            <p>Create columns like "To Do", "In Progress", or "Done" to organize tasks.</p>
-            <Button variant="primary" onClick={onOpenCreateList}>
-              <Icon name="plus" size={15} />
-              <span>Create First List</span>
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
