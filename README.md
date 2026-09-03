@@ -442,21 +442,3 @@ Backend movement and persistent ordering.
 
 This project is currently intended as a personal portfolio project.
 
-
-### One thing I'd change before committing
-
-The README currently has **literal URLs**, and since this is going into GitHub, that's fine as Markdown, but I'd also make the **Live Application** link prominent near the top.
-
-More importantly, I deliberately removed the old claims about:
-
-- `"Midnight Glass"`
-- `X-Guest-User-Id`
-- `localStorage` guest UUID identity
-- `grid-auto-flow: dense`
-- the old `Alt+N` shortcut claims
-- `PORT=10000`
-- generic `"your-tasktracker.vercel.app"`
-
-Those describe an older architecture and would make the README look stale to someone reviewing your portfolio.
-
-I'd also **not put AWS credentials, database passwords, certificates, `.pem` paths, or RDS endpoints anywhere in this README**.
