@@ -7,6 +7,8 @@ import { useBoard } from '../../hooks/useBoard';
 export default function ListColumn({
   list,
   index,
+  isCollapsed = false,
+  onToggleCollapse,
   onEditList,
   onDeleteList,
   onEditCard,
@@ -14,6 +16,7 @@ export default function ListColumn({
   const {
     activeListId,
     setActiveListId,
+    draggedItem,
     setDraggedItem,
     moveCardItem,
     reorderList,
@@ -100,11 +103,14 @@ export default function ListColumn({
     }
   }
 
+  const isListDropTarget =
+    isColumnDragTarget && draggedItem?.type === 'LIST' && draggedItem?.listId !== list.id;
+
   return (
     <section
       ref={columnRef}
-      className={`tt-column ${isFocused ? 'is-focused' : ''} ${
-        isColumnDragTarget ? 'column-drag-target' : ''
+      className={`tt-column ${isCollapsed ? 'is-collapsed' : ''} ${isFocused ? 'is-focused' : ''} ${
+        isListDropTarget ? 'column-drag-target' : ''
       }`}
       onClick={() => setActiveListId(list.id)}
       onDragOver={handleContainerDragOver}
@@ -119,7 +125,12 @@ export default function ListColumn({
         draggable
         onDragStart={handleColumnDragStart}
         onDragEnd={handleColumnDragEnd}
-        title="Drag list to reorder"
+        title={isCollapsed ? 'Click to expand list, or drag to reorder' : 'Drag list to reorder'}
+        onClick={() => {
+          if (isCollapsed) {
+            onToggleCollapse?.();
+          }
+        }}
       >
         <div className="col-header-left">
           <div className="col-drag-grip">
@@ -132,6 +143,19 @@ export default function ListColumn({
         </div>
 
         <div className="tt-col-actions">
+          <button
+            type="button"
+            className="col-action-btn col-action-collapse"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse?.();
+            }}
+            title={isCollapsed ? 'Expand list' : 'Collapse list'}
+            aria-label={isCollapsed ? `Expand ${list.name}` : `Collapse ${list.name}`}
+            aria-expanded={!isCollapsed}
+          >
+            <Icon name={isCollapsed ? 'chevronDown' : 'chevronUp'} size={13} />
+          </button>
           <button
             type="button"
             className="col-action-btn"
@@ -159,34 +183,38 @@ export default function ListColumn({
         </div>
       </div>
 
-      {/* Cards Stack */}
-      <div className={`tt-cards-scroll-area ${isCardDropZoneActive && cards.length === 0 ? 'empty-drop-active' : ''}`}>
-        {cards.length > 0 ? (
-          <div className="tt-cards-stack" role="list">
-            {cards.map((card, cardIndex) => (
-              <CardItem
-                key={card.id}
-                card={card}
-                listId={list.id}
-                index={cardIndex}
-                onEdit={() => onEditCard(list.id, card)}
-              />
-            ))}
+      {!isCollapsed && (
+        <>
+          {/* Cards Stack */}
+          <div className={`tt-cards-scroll-area ${isCardDropZoneActive && cards.length === 0 ? 'empty-drop-active' : ''}`}>
+            {cards.length > 0 ? (
+              <div className="tt-cards-stack" role="list">
+                {cards.map((card, cardIndex) => (
+                  <CardItem
+                    key={card.id}
+                    card={card}
+                    listId={list.id}
+                    index={cardIndex}
+                    onEdit={() => onEditCard(list.id, card)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="tt-empty-list-slot">
+                <div className="empty-list-dashed-box">
+                  <span className="empty-list-text">No cards yet</span>
+                  <span className="empty-list-subtext">Drop a card here</span>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="tt-empty-list-slot">
-            <div className="empty-list-dashed-box">
-              <span className="empty-list-text">No cards yet</span>
-              <span className="empty-list-subtext">Drop a card here</span>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Inline Card Creator at Bottom of List */}
-      <div className="tt-col-footer">
-        <AddCardInline listId={list.id} />
-      </div>
+          {/* Inline Card Creator at Bottom of List */}
+          <div className="tt-col-footer">
+            <AddCardInline listId={list.id} />
+          </div>
+        </>
+      )}
     </section>
   );
 }

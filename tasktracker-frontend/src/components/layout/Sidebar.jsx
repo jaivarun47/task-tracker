@@ -23,27 +23,34 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
       {/* Sidebar Header */}
       <div className="sidebar-header">
         {!isSidebarCollapsed ? (
-          <div className="sidebar-brand">
-            <div className="brand-icon">
-              <Icon name="board" size={18} />
+          <>
+            <div className="sidebar-brand">
+              <div className="brand-icon">
+                <Icon name="board" size={18} />
+              </div>
+              <span className="brand-text">TaskTracker</span>
             </div>
-            <span className="brand-text">TaskTracker</span>
-          </div>
+            <button
+              type="button"
+              className="sidebar-toggle-btn"
+              onClick={toggleSidebar}
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <Icon name="menu" size={18} />
+            </button>
+          </>
         ) : (
-          <div className="brand-icon collapsed-brand-icon" title="TaskTracker">
+          <button
+            type="button"
+            className="brand-icon collapsed-brand-btn"
+            onClick={toggleSidebar}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
             <Icon name="board" size={20} />
-          </div>
+          </button>
         )}
-
-        <button
-          type="button"
-          className="sidebar-toggle-btn"
-          onClick={toggleSidebar}
-          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <Icon name={isSidebarCollapsed ? 'chevronRight' : 'chevronLeft'} size={16} />
-        </button>
       </div>
 
       {/* Boards Section */}

@@ -56,6 +56,12 @@ export function CardModal({ show, card, onClose, onSave, onDelete }) {
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
             placeholder="Add a more detailed description…"
           />
         </div>

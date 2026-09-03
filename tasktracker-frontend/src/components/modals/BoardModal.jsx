@@ -128,17 +128,24 @@ export function DeleteBoardModal({ show, board, onClose, onConfirm }) {
 
   return (
     <Modal show={show} title="Delete Board?" onClose={onClose}>
-      <p className="modal-description">
-        Are you sure you want to delete <strong>{board?.name}</strong>? All lists and cards within this board will be permanently removed.
-      </p>
-      <div className="form-actions">
-        <Button variant="secondary" onClick={onClose} disabled={deleting}>
-          Cancel
-        </Button>
-        <Button variant="danger" onClick={handleConfirm} disabled={deleting}>
-          {deleting ? 'Deleting…' : 'Yes, Delete Board'}
-        </Button>
-      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleConfirm();
+        }}
+      >
+        <p className="modal-description">
+          Are you sure you want to delete <strong>{board?.name}</strong>? All lists and cards within this board will be permanently removed.
+        </p>
+        <div className="form-actions">
+          <Button variant="secondary" onClick={onClose} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" type="submit" disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Yes, Delete Board'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

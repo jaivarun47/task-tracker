@@ -17,6 +17,40 @@ export default function Modal({
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose?.();
+      } else if (e.key === 'Enter') {
+        const target = e.target;
+        // If focused on a button, let the button's native click handler execute
+        if (target && target.tagName === 'BUTTON') {
+          return;
+        }
+
+        // In a multiline textarea, regular Enter must insert a newline.
+        // Ctrl+Enter or Cmd+Enter submits the form.
+        if (target && target.tagName === 'TEXTAREA') {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const form = target.closest('form') || modalRef.current?.querySelector('form');
+            if (form) {
+              if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+              } else {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }
+          }
+          return;
+        }
+
+        // For text inputs, checkboxes, or modal background, submit the primary form
+        const form = modalRef.current?.querySelector('form');
+        if (form) {
+          e.preventDefault();
+          if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+          } else {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+        }
       }
     }
 

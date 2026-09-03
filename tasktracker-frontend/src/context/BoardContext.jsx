@@ -91,18 +91,83 @@ export function BoardProvider({ children }) {
 
   // Track latest move operation to ignore stale out-of-order responses
   const lastMoveOpRef = useRef(0);
+  const pendingCardDeletionsRef = useRef(new Map());
+  const pendingListDeletionsRef = useRef(new Map());
 
-  const addToast = useCallback((message, type = 'info') => {
+  const addToast = useCallback((message, type = 'info', options = {}) => {
     const id = Date.now() + Math.random().toString(36).slice(2, 7);
-    dispatch({ type: 'ADD_TOAST', payload: { id, message, type } });
-    setTimeout(() => {
-      dispatch({ type: 'REMOVE_TOAST', payload: id });
-    }, 4000);
+    const duration = options.duration ?? 4000;
+    const toast = {
+      id,
+      message,
+      type,
+      action: options.action,
+      duration,
+      onDismiss: options.onDismiss,
+    };
+    dispatch({ type: 'ADD_TOAST', payload: toast });
+
+    let timerId = null;
+    if (duration > 0) {
+      timerId = setTimeout(() => {
+        dispatch({ type: 'REMOVE_TOAST', payload: id });
+        options.onTimeout?.();
+      }, duration);
+    }
+    return { id, timerId };
   }, []);
 
   const removeToast = useCallback((id) => {
     dispatch({ type: 'REMOVE_TOAST', payload: id });
   }, []);
+
+  const flushPendingDeletions = useCallback(async (targetListId = null) => {
+    // 1. Flush pending card deletions
+    const cardMap = pendingCardDeletionsRef.current;
+    if (cardMap.size > 0) {
+      for (const [cardId, item] of Array.from(cardMap.entries())) {
+        if (!targetListId || item.listId === targetListId) {
+          clearTimeout(item.timerId);
+          cardMap.delete(cardId);
+          dispatch({ type: 'REMOVE_TOAST', payload: item.toastId });
+          try {
+            await api.deleteCard(item.listId, cardId);
+          } catch (err) {
+            console.error('Failed to flush deferred card deletion', err);
+          }
+        }
+      }
+    }
+
+    // 2. Flush pending list deletions
+    const listMap = pendingListDeletionsRef.current;
+    if (listMap.size > 0) {
+      for (const [listId, item] of Array.from(listMap.entries())) {
+        if (!targetListId || item.list.id === targetListId) {
+          clearTimeout(item.timerId);
+          listMap.delete(listId);
+          dispatch({ type: 'REMOVE_TOAST', payload: item.toastId });
+          try {
+            await api.deleteCardList(item.boardId, listId);
+          } catch (err) {
+            console.error('Failed to flush deferred list deletion', err);
+          }
+        }
+      }
+    }
+  }, []);
+
+  // Flush pending deletions on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushPendingDeletions();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      flushPendingDeletions();
+    };
+  }, [flushPendingDeletions]);
 
   const toggleSidebar = useCallback(() => {
     dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: !stateRef.current.isSidebarCollapsed });
@@ -146,6 +211,7 @@ export function BoardProvider({ children }) {
   }, []);
 
   const loadBoardDetails = useCallback(async (boardId) => {
+    flushPendingDeletions();
     if (!boardId) {
       dispatch({ type: 'SET_LISTS_AND_CARDS', payload: [] });
       return;
@@ -178,7 +244,7 @@ export function BoardProvider({ children }) {
         addToast(err?.message || 'Failed to load board details', 'error');
       }
     }
-  }, [addToast]);
+  }, [addToast, flushPendingDeletions]);
 
   const selectBoard = useCallback((boardId) => {
     if (boardId === stateRef.current.selectedBoardId) return;
@@ -191,7 +257,6 @@ export function BoardProvider({ children }) {
     try {
       const created = await api.createBoard(name.trim());
       await refreshBoards(created.id);
-      addToast(`Board "${created.name}" created`, 'success');
       return created;
     } catch (err) {
       addToast(err?.message || 'Failed to create board', 'error');
@@ -204,7 +269,6 @@ export function BoardProvider({ children }) {
       const updated = await api.updateBoard(boardId, name.trim());
       const nextBoards = stateRef.current.boards.map((b) => (b.id === boardId ? { ...b, name: updated.name } : b));
       dispatch({ type: 'SET_BOARDS', payload: nextBoards });
-      addToast('Board renamed', 'success');
       return updated;
     } catch (err) {
       addToast(err?.message || 'Failed to rename board', 'error');
@@ -218,7 +282,6 @@ export function BoardProvider({ children }) {
       const remainingBoards = stateRef.current.boards.filter((b) => b.id !== boardId);
       const nextSelected = remainingBoards.length > 0 ? remainingBoards[0].id : null;
       dispatch({ type: 'SET_BOARDS', payload: remainingBoards, selectedBoardId: nextSelected });
-      addToast('Board deleted', 'info');
     } catch (err) {
       addToast(err?.message || 'Failed to delete board', 'error');
       throw err;
@@ -237,7 +300,6 @@ export function BoardProvider({ children }) {
         type: 'OPTIMISTIC_UPDATE_LISTS',
         payload: [...stateRef.current.lists, newList],
       });
-      addToast(`List "${created.name}" created`, 'success');
       return created;
     } catch (err) {
       addToast(err?.message || 'Failed to create list', 'error');
@@ -252,7 +314,6 @@ export function BoardProvider({ children }) {
       const updated = await api.updateCardList(currentBoardId, listId, name.trim());
       const nextLists = stateRef.current.lists.map((l) => (l.id === listId ? { ...l, name: updated.name } : l));
       dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
-      addToast('List renamed', 'success');
       return updated;
     } catch (err) {
       addToast(err?.message || 'Failed to rename list', 'error');
@@ -260,20 +321,85 @@ export function BoardProvider({ children }) {
     }
   }, [addToast]);
 
-  const deleteList = useCallback(async (listId) => {
+  const deleteList = useCallback((listId) => {
     const currentBoardId = stateRef.current.selectedBoardId;
     if (!currentBoardId) return;
-    try {
-      await api.deleteCardList(currentBoardId, listId);
-      const nextLists = stateRef.current.lists
-        .filter((l) => l.id !== listId)
-        .map((l, idx) => ({ ...l, position: idx }));
-      dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
-      addToast('List deleted', 'info');
-    } catch (err) {
-      addToast(err?.message || 'Failed to delete list', 'error');
-      throw err;
+
+    const currentLists = stateRef.current.lists;
+    const listIndex = currentLists.findIndex((l) => l.id === listId);
+    if (listIndex === -1) return;
+    const listToDelete = currentLists[listIndex];
+
+    // Clear any pending card deletions inside this list
+    for (const [cardId, item] of Array.from(pendingCardDeletionsRef.current.entries())) {
+      if (item.listId === listId) {
+        clearTimeout(item.timerId);
+        pendingCardDeletionsRef.current.delete(cardId);
+        dispatch({ type: 'REMOVE_TOAST', payload: item.toastId });
+      }
     }
+
+    // 1. Optimistic removal from UI immediately
+    const nextLists = currentLists
+      .filter((l) => l.id !== listId)
+      .map((l, idx) => ({ ...l, position: idx }));
+    dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
+
+    // 2. Commit deletion function (executes if timeout expires or manually dismissed)
+    const commitListDeletion = async () => {
+      pendingListDeletionsRef.current.delete(listId);
+      try {
+        await api.deleteCardList(currentBoardId, listId);
+      } catch (err) {
+        // Roll back list and its complete hierarchy if backend delete fails
+        const rollbackLists = [...stateRef.current.lists];
+        const insertPos = Math.min(listIndex, rollbackLists.length);
+        rollbackLists.splice(insertPos, 0, listToDelete);
+        const normalized = rollbackLists.map((l, idx) => ({ ...l, position: idx }));
+        dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: normalized });
+        addToast(err?.message || 'Failed to delete list', 'error');
+      }
+    };
+
+    // 3. Undo deletion function
+    const undoListDeletion = () => {
+      const pending = pendingListDeletionsRef.current.get(listId);
+      if (!pending) return;
+
+      clearTimeout(pending.timerId);
+      pendingListDeletionsRef.current.delete(listId);
+
+      // Restore list to original board and position with complete cards hierarchy preserved
+      const restoredLists = [...stateRef.current.lists];
+      const insertPos = Math.min(listIndex, restoredLists.length);
+      restoredLists.splice(insertPos, 0, listToDelete);
+      const normalized = restoredLists.map((l, idx) => ({ ...l, position: idx }));
+      dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: normalized });
+    };
+
+    // 4. Dispatch Undo Toast with 5-second duration
+    const { id: toastId, timerId } = addToast(
+      `List "${listToDelete.name}" deleted`,
+      'info',
+      {
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          onClick: undoListDeletion,
+        },
+        onTimeout: commitListDeletion,
+        onDismiss: commitListDeletion,
+      }
+    );
+
+    pendingListDeletionsRef.current.set(listId, {
+      boardId: currentBoardId,
+      list: listToDelete,
+      originalIndex: listIndex,
+      timerId,
+      toastId,
+      commit: commitListDeletion,
+    });
   }, [addToast]);
 
   // ── Card CRUD ─────────────────────────────────────────────────────────────
@@ -294,7 +420,6 @@ export function BoardProvider({ children }) {
         return l;
       });
       dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
-      addToast('Card added', 'success');
       return created;
     } catch (err) {
       addToast(err?.message || 'Failed to create card', 'error');
@@ -356,29 +481,104 @@ export function BoardProvider({ children }) {
     }
   }, [addToast]);
 
-  const deleteCard = useCallback(async (listId, cardId) => {
-    try {
-      await api.deleteCard(listId, cardId);
-      const nextLists = stateRef.current.lists.map((l) => {
+  const deleteCard = useCallback((listId, cardId) => {
+    const currentLists = stateRef.current.lists;
+    const targetList = currentLists.find((l) => l.id === listId);
+    if (!targetList) return;
+
+    const cardIndex = targetList.cards.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) return;
+    const cardToDelete = targetList.cards[cardIndex];
+
+    // 1. Optimistic removal from UI immediately
+    const nextLists = currentLists.map((l) => {
+      if (l.id === listId) {
+        const remainingCards = l.cards
+          .filter((c) => c.id !== cardId)
+          .map((c, idx) => ({ ...c, position: idx }));
+        return { ...l, cards: remainingCards };
+      }
+      return l;
+    });
+    dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
+
+    // 2. Commit deletion function (executes if timeout expires or manually dismissed)
+    const commitDeletion = async () => {
+      pendingCardDeletionsRef.current.delete(cardId);
+      try {
+        await api.deleteCard(listId, cardId);
+      } catch (err) {
+        // Roll back if backend delete fails
+        const rollbackLists = stateRef.current.lists.map((l) => {
+          if (l.id === listId) {
+            const restoredCards = [...l.cards];
+            const insertPos = Math.min(cardIndex, restoredCards.length);
+            restoredCards.splice(insertPos, 0, cardToDelete);
+            return {
+              ...l,
+              cards: restoredCards.map((c, idx) => ({ ...c, position: idx })),
+            };
+          }
+          return l;
+        });
+        dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: rollbackLists });
+        addToast(err?.message || 'Failed to delete card', 'error');
+      }
+    };
+
+    // 3. Undo deletion function
+    const undoDeletion = () => {
+      const pending = pendingCardDeletionsRef.current.get(cardId);
+      if (!pending) return;
+
+      clearTimeout(pending.timerId);
+      pendingCardDeletionsRef.current.delete(cardId);
+
+      // Restore card to original list and position
+      const restoredLists = stateRef.current.lists.map((l) => {
         if (l.id === listId) {
-          const remainingCards = l.cards
-            .filter((c) => c.id !== cardId)
-            .map((c, idx) => ({ ...c, position: idx }));
-          return { ...l, cards: remainingCards };
+          const restoredCards = [...l.cards];
+          const insertPos = Math.min(cardIndex, restoredCards.length);
+          restoredCards.splice(insertPos, 0, cardToDelete);
+          return {
+            ...l,
+            cards: restoredCards.map((c, idx) => ({ ...c, position: idx })),
+          };
         }
         return l;
       });
-      dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: nextLists });
-      addToast('Card deleted', 'info');
-    } catch (err) {
-      addToast(err?.message || 'Failed to delete card', 'error');
-      throw err;
-    }
+      dispatch({ type: 'OPTIMISTIC_UPDATE_LISTS', payload: restoredLists });
+    };
+
+    // 4. Dispatch Undo Toast with 5-second duration
+    const { id: toastId, timerId } = addToast(
+      `Card "${cardToDelete.name}" deleted`,
+      'info',
+      {
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          onClick: undoDeletion,
+        },
+        onTimeout: commitDeletion,
+        onDismiss: commitDeletion,
+      }
+    );
+
+    pendingCardDeletionsRef.current.set(cardId, {
+      listId,
+      card: cardToDelete,
+      originalIndex: cardIndex,
+      timerId,
+      toastId,
+      commit: commitDeletion,
+    });
   }, [addToast]);
 
   // ── Drag & Drop Optimistic Movement ───────────────────────────────────────
 
   const reorderList = useCallback(async (sourceIndex, targetIndex) => {
+    flushPendingDeletions();
     const currentBoardId = stateRef.current.selectedBoardId;
     if (sourceIndex === targetIndex || !currentBoardId) return;
 
@@ -408,9 +608,13 @@ export function BoardProvider({ children }) {
         addToast(err?.message || 'Failed to reorder list', 'error');
       }
     }
-  }, [addToast]);
+  }, [addToast, flushPendingDeletions]);
 
   const moveCardItem = useCallback(async ({ cardId, sourceListId, targetListId, sourceIndex, targetIndex }) => {
+    flushPendingDeletions(sourceListId);
+    if (sourceListId !== targetListId) {
+      flushPendingDeletions(targetListId);
+    }
     if (sourceListId === targetListId && sourceIndex === targetIndex) return;
 
     const snapshot = stateRef.current.lists;
@@ -479,7 +683,7 @@ export function BoardProvider({ children }) {
         addToast(err?.message || 'Failed to move card', 'error');
       }
     }
-  }, [addToast]);
+  }, [addToast, flushPendingDeletions]);
 
   // ── Lifecycle Effects ─────────────────────────────────────────────────────
 

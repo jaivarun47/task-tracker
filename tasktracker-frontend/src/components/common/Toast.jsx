@@ -10,14 +10,36 @@ export default function Toast({ toast, onClose }) {
         <Icon name={isError ? 'alert' : isSuccess ? 'check' : 'board'} size={16} />
       </div>
       <div className="toast-content">{toast.message}</div>
+      {toast.action && (
+        <button
+          type="button"
+          className="toast-action-btn"
+          onClick={() => {
+            toast.action.onClick?.();
+            onClose(toast.id);
+          }}
+          aria-label={toast.action.label}
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         className="toast-close"
-        onClick={() => onClose(toast.id)}
+        onClick={() => {
+          toast.onDismiss?.();
+          onClose(toast.id);
+        }}
         aria-label="Dismiss notification"
       >
         <Icon name="x" size={14} />
       </button>
+      {toast.duration && (
+        <div
+          className="toast-progress-bar"
+          style={{ animationDuration: `${toast.duration}ms` }}
+        />
+      )}
     </div>
   );
 }

@@ -128,17 +128,24 @@ export function DeleteListModal({ show, list, onClose, onConfirm }) {
 
   return (
     <Modal show={show} title="Delete List?" onClose={onClose}>
-      <p className="modal-description">
-        Are you sure you want to delete <strong>{list?.name}</strong> and its {list?.cards?.length || 0} cards?
-      </p>
-      <div className="form-actions">
-        <Button variant="secondary" onClick={onClose} disabled={deleting}>
-          Cancel
-        </Button>
-        <Button variant="danger" onClick={handleConfirm} disabled={deleting}>
-          {deleting ? 'Deleting…' : 'Delete List'}
-        </Button>
-      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleConfirm();
+        }}
+      >
+        <p className="modal-description">
+          Are you sure you want to delete <strong>{list?.name}</strong> and its {list?.cards?.length || 0} cards?
+        </p>
+        <div className="form-actions">
+          <Button variant="secondary" onClick={onClose} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" type="submit" disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Delete List'}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

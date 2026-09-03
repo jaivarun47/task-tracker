@@ -1,5 +1,12 @@
 export default function Icon({ name, size = 16, className = '', ...props }) {
   const icons = {
+    menu: (
+      <>
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </>
+    ),
     plus: (
       <path d="M12 5v14M5 12h14" />
     ),
@@ -35,6 +42,12 @@ export default function Icon({ name, size = 16, className = '', ...props }) {
     ),
     chevronRight: (
       <polyline points="9 18 15 12 9 6" />
+    ),
+    chevronDown: (
+      <polyline points="6 9 12 15 18 9" />
+    ),
+    chevronUp: (
+      <polyline points="18 15 12 9 6 15" />
     ),
     board: (
       <>

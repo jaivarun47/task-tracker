@@ -6,7 +6,7 @@ import Sidebar from './components/layout/Sidebar';
 import BoardHeader from './components/layout/BoardHeader';
 import BoardCanvas from './components/kanban/BoardCanvas';
 import { CreateBoardModal, EditBoardModal, DeleteBoardModal } from './components/modals/BoardModal';
-import { CreateListModal, EditListModal, DeleteListModal } from './components/modals/ListModal';
+import { CreateListModal, EditListModal } from './components/modals/ListModal';
 import { CardModal } from './components/modals/CardModal';
 import { ToastContainer } from './components/common/Toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -86,7 +86,7 @@ function MainApp() {
           <BoardCanvas
             onOpenCreateList={() => setListModal({ type: 'create', data: null })}
             onOpenEditList={(list) => setListModal({ type: 'edit', data: list })}
-            onOpenDeleteList={(list) => setListModal({ type: 'delete', data: list })}
+            onOpenDeleteList={(list) => deleteList(list.id)}
             onOpenEditCard={(listId, card) => setCardModal({ show: true, listId, card })}
           />
         </main>
@@ -126,14 +126,12 @@ function MainApp() {
         list={listModal.data}
         onClose={() => setListModal({ type: null, data: null })}
         onUpdate={updateList}
-        onDeleteClick={() => setListModal({ type: 'delete', data: listModal.data })}
-      />
-
-      <DeleteListModal
-        show={listModal.type === 'delete'}
-        list={listModal.data}
-        onClose={() => setListModal({ type: null, data: null })}
-        onConfirm={deleteList}
+        onDeleteClick={() => {
+          if (listModal.data?.id) {
+            deleteList(listModal.data.id);
+            setListModal({ type: null, data: null });
+          }
+        }}
       />
 
       {/* Card Detail Modal */}
