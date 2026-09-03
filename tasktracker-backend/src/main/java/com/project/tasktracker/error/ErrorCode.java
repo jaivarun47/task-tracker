@@ -8,6 +8,7 @@ public enum ErrorCode {
     SESSION_MISSING,
     SESSION_INVALID,
     SESSION_EXPIRED,
-    FORBIDDEN
+    FORBIDDEN,
+    INVALID_POSITION
 }
 

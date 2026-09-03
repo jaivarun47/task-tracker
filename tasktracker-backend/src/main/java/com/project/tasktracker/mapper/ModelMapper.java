@@ -30,7 +30,8 @@ public class ModelMapper {
         return new CardListDto(
                 list.getId(),
                 list.getName(),
-                list.getBoard() != null ? list.getBoard().getId() : null
+                list.getBoard() != null ? list.getBoard().getId() : null,
+                list.getPosition()
         );
     }
 
@@ -42,7 +43,8 @@ public class ModelMapper {
                 card.getDescription(),
                 card.isCompleted(),
                 card.getCreatedAt(),
-                card.getCardList() != null ? card.getCardList().getId() : null
+                card.getCardList() != null ? card.getCardList().getId() : null,
+                card.getPosition()
         );
     }
 }

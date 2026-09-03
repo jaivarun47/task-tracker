@@ -9,63 +9,39 @@ public class CardDto {
     private boolean completed;
     private LocalDateTime createdAt;
     private Long listId;
+    private int position;
 
     public CardDto() {}
 
-    public CardDto(Long id, String name, String description, boolean completed, LocalDateTime createdAt, Long listId) {
+    public CardDto(Long id, String name, String description, boolean completed,
+                   LocalDateTime createdAt, Long listId, int position) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.completed = completed;
         this.createdAt = createdAt;
         this.listId = listId;
+        this.position = position;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public boolean isCompleted() { return completed; }
+    public void setCompleted(boolean completed) { this.completed = completed; }
 
-    public String getDescription() {
-        return description;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public Long getListId() { return listId; }
+    public void setListId(Long listId) { this.listId = listId; }
 
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Long getListId() {
-        return listId;
-    }
-
-    public void setListId(Long listId) {
-        this.listId = listId;
-    }
+    public int getPosition() { return position; }
+    public void setPosition(int position) { this.position = position; }
 }

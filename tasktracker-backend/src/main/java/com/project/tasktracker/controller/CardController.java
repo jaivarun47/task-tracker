@@ -2,6 +2,7 @@ package com.project.tasktracker.controller;
 
 import com.project.tasktracker.dto.CardDto;
 import com.project.tasktracker.dto.CreateCardRequest;
+import com.project.tasktracker.dto.MoveCardRequest;
 import com.project.tasktracker.dto.UpdateCardRequest;
 import com.project.tasktracker.mapper.ModelMapper;
 import com.project.tasktracker.model.User;
@@ -67,5 +68,23 @@ public class CardController {
             @PathVariable Long cardId
     ) {
         cardService.deleteCard(user, listId, cardId);
+    }
+
+    /**
+     * Move a card to a (possibly different) list at a target position.
+     *
+     * <p>POST body: {@code { "targetListId": 123, "position": 0 }}
+     *
+     * <p>{@code listId} in the path is the card's CURRENT (source) list.
+     * After a cross-list move the card will no longer belong to {@code listId}.
+     */
+    @PatchMapping("/{cardId}/move")
+    public CardDto moveCard(
+            @CurrentUser User user,
+            @PathVariable Long listId,
+            @PathVariable Long cardId,
+            @RequestBody MoveCardRequest request
+    ) {
+        return ModelMapper.toCardDto(cardService.moveCard(user, listId, cardId, request));
     }
 }
