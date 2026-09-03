@@ -24,6 +24,28 @@ body {
   user-select: none;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Dedicated ~250ms Theme Transition (Selective properties, no global "all")
+   ───────────────────────────────────────────────────────────────────────────── */
+body,
+.tt-app-root,
+.tt-sidebar,
+.sidebar-header,
+.sidebar-footer,
+.tt-content-wrapper,
+.tt-main-header,
+.tt-column,
+.tt-card,
+.modal-container,
+.add-card-inline-form,
+.toast-item,
+.theme-toggle-btn {
+  transition: background-color var(--transition-theme),
+              border-color var(--transition-theme),
+              color var(--transition-theme),
+              box-shadow var(--transition-theme);
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
@@ -35,21 +57,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 42, 84, 0.16);
+  background: var(--scrollbar-thumb);
   border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 42, 84, 0.28);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Dark surface scrollbar */
 .dark-scroll::-webkit-scrollbar-thumb {
-  background: rgba(138, 168, 255, 0.2);
+  background: rgba(138, 168, 255, 0.22);
 }
 
 .dark-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(138, 168, 255, 0.35);
+  background: rgba(138, 168, 255, 0.38);
 }
 
 /* Common form reset */

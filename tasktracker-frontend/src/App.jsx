@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { BoardProvider } from './context/BoardContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useBoard } from './hooks/useBoard';
 import Sidebar from './components/layout/Sidebar';
 import BoardHeader from './components/layout/BoardHeader';
@@ -157,8 +158,10 @@ function MainApp() {
 
 export default function App() {
   return (
-    <BoardProvider>
-      <MainApp />
-    </BoardProvider>
+    <ThemeProvider>
+      <BoardProvider>
+        <MainApp />
+      </BoardProvider>
+    </ThemeProvider>
   );
 }

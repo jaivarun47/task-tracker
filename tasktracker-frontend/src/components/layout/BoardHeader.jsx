@@ -1,4 +1,5 @@
 import Icon from '../common/Icon';
+import ThemeToggle from '../common/ThemeToggle';
 import { useBoard } from '../../hooks/useBoard';
 
 export default function BoardHeader({ onOpenEditBoard }) {
@@ -57,6 +58,10 @@ export default function BoardHeader({ onOpenEditBoard }) {
             )}
           </div>
         )}
+      </div>
+
+      <div className="header-right-actions">
+        <ThemeToggle />
       </div>
     </header>
   );

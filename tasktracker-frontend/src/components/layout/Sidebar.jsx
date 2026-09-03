@@ -28,7 +28,7 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
               <div className="brand-icon">
                 <Icon name="board" size={18} />
               </div>
-              <span className="brand-text">TaskTracker</span>
+              <span className="brand-text">TreadTask</span>
             </div>
             <button
               type="button"
