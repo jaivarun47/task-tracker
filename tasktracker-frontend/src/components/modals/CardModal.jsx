@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
+import { useBoard } from '../../hooks/useBoard';
 
-export function CardModal({ show, card, onClose, onSave, onDelete }) {
+export function CardModal({ show, card, listId, onClose, onSave, onDelete }) {
+  const { lists, moveCardItem } = useBoard();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [completed, setCompleted] = useState(false);
+  const [targetListId, setTargetListId] = useState(listId);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -13,8 +16,9 @@ export function CardModal({ show, card, onClose, onSave, onDelete }) {
       setName(card.name || '');
       setDescription(card.description || '');
       setCompleted(Boolean(card.completed));
+      setTargetListId(listId);
     }
-  }, [card, show]);
+  }, [card, listId, show]);
 
   async function handleSubmit(e) {
     e?.preventDefault();
@@ -26,6 +30,22 @@ export function CardModal({ show, card, onClose, onSave, onDelete }) {
         description: description.trim(),
         completed,
       });
+
+      // If target list was changed via dropdown, move the card seamlessly
+      if (targetListId && targetListId !== listId && moveCardItem) {
+        const sourceList = lists.find((l) => l.id === listId);
+        const sourceIndex = sourceList ? sourceList.cards?.findIndex((c) => c.id === card.id) : 0;
+        const targetList = lists.find((l) => l.id === targetListId);
+        const targetIndex = targetList?.cards?.length || 0;
+        moveCardItem({
+          cardId: card.id,
+          sourceListId: listId,
+          targetListId,
+          sourceIndex: sourceIndex >= 0 ? sourceIndex : 0,
+          targetIndex,
+        });
+      }
+
       onClose();
     } finally {
       setSubmitting(false);
@@ -65,6 +85,24 @@ export function CardModal({ show, card, onClose, onSave, onDelete }) {
             placeholder="Add a more detailed description…"
           />
         </div>
+
+        {lists && lists.length > 1 && (
+          <div className="form-group">
+            <label className="form-label" htmlFor="card-list-select">List</label>
+            <select
+              id="card-list-select"
+              className="form-input"
+              value={targetListId || listId}
+              onChange={(e) => setTargetListId(Number(e.target.value))}
+            >
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="form-group form-checkbox-group">
           <label className="checkbox-container">

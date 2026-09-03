@@ -6,9 +6,15 @@
 .tt-app-root {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
+  max-width: 100%;
   overflow: hidden;
   background-color: var(--surface-app);
+}
+
+.sidebar-mobile-backdrop {
+  display: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -338,10 +344,44 @@
   z-index: 10;
 }
 
+.header-left-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-sidebar-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-heading);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.mobile-sidebar-toggle-btn:hover {
+  background: var(--surface-hover-subtle);
+}
+
+.mobile-sidebar-toggle-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
 .header-title-block {
   display: flex;
   align-items: center;
   gap: 20px;
+  min-width: 0;
+  flex: 1;
 }
 
 .header-title-row {
@@ -813,6 +853,12 @@
   color: var(--text-primary);
   word-break: break-word;
   user-select: text;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.card-title:hover {
+  color: var(--color-periwinkle);
 }
 
 .card-title.completed {
@@ -871,6 +917,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   user-select: text;
+  cursor: pointer;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1432,4 +1479,211 @@
 
 .toast-close:hover {
   color: #FBFFFF;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. TOUCH-FRIENDLY & MOBILE RESPONSIVE SYSTEM
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Touch-action to prevent gesture lock while scrolling */
+.tt-kanban-viewport,
+.tt-cards-scroll-area,
+.tt-card,
+.tt-column {
+  touch-action: pan-y;
+}
+
+/* Tablet & Mobile (< 768px) */
+@media (max-width: 768px) {
+  /* Sidebar Drawer on Mobile */
+  .sidebar-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 15, 0.65);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 95;
+    transition: opacity var(--transition-fast);
+  }
+
+  .tt-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 280px;
+    max-width: 85vw;
+    height: 100dvh;
+    box-shadow: 0 0 30px rgba(0, 0, 15, 0.7);
+    transition: transform var(--transition-smooth);
+  }
+
+  .tt-sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .tt-sidebar.expanded {
+    transform: translateX(0);
+    width: 280px;
+  }
+
+  /* Mobile Header */
+  .mobile-sidebar-toggle-btn {
+    display: flex;
+  }
+
+  .tt-main-header {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .header-left-cluster {
+    gap: 8px;
+  }
+
+  .header-title-block {
+    gap: 3px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-board-title {
+    font-size: 1.15rem;
+    max-width: 170px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-stats {
+    font-size: 0.74rem;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Kanban Canvas & Columns */
+  .tt-kanban-viewport {
+    padding: 14px 12px 36px 12px;
+  }
+
+  .tt-column {
+    max-height: clamp(380px, 66dvh, 700px);
+  }
+
+  .tt-col-header {
+    padding: 10px 12px;
+  }
+}
+
+/* Touch-optimized controls & typography */
+@media (hover: none), (max-width: 768px) {
+  .card-actions {
+    opacity: 0.85;
+  }
+
+  .card-drag-handle {
+    opacity: 0.6;
+  }
+
+  .card-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .col-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header-edit-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .theme-toggle-btn {
+    padding: 6px 12px;
+    min-height: 34px;
+  }
+
+  .form-input,
+  .form-textarea,
+  .add-card-inline-input {
+    font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+  }
+
+  .btn-sm {
+    min-height: 34px;
+    padding: 7px 14px;
+  }
+}
+
+/* Small phone screens (<= 600px) */
+@media (max-width: 600px) {
+  .header-board-title {
+    max-width: 140px;
+  }
+
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-end; /* Bottom sheet on phone */
+  }
+
+  .modal-container {
+    max-height: 90dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .modal-body {
+    padding: 16px 16px 20px 16px;
+    max-height: calc(90dvh - 65px);
+  }
+
+  .form-actions-between {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .form-actions-between .btn-danger {
+    width: 100%;
+  }
+
+  .form-actions-group {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .form-actions-group .btn {
+    flex: 1;
+  }
+
+  .form-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .form-actions .btn {
+    flex: 1;
+  }
+
+  /* Toast notification on mobile */
+  .toast-container {
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+    align-items: center;
+  }
+
+  .toast-item {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
 }

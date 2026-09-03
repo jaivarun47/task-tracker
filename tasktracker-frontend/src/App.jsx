@@ -139,6 +139,7 @@ function MainApp() {
       <CardModal
         show={cardModal.show}
         card={cardModal.card}
+        listId={cardModal.listId}
         onClose={() => setCardModal({ show: false, listId: null, card: null })}
         onSave={(cardId, fields) => {
           if (cardModal.card?.id) {

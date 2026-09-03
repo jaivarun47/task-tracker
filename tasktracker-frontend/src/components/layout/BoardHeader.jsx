@@ -3,7 +3,7 @@ import ThemeToggle from '../common/ThemeToggle';
 import { useBoard } from '../../hooks/useBoard';
 
 export default function BoardHeader({ onOpenEditBoard }) {
-  const { selectedBoard, lists, boardLoading } = useBoard();
+  const { selectedBoard, lists, boardLoading, toggleSidebar } = useBoard();
 
   const totalCards = lists.reduce((acc, l) => acc + (l.cards?.length || 0), 0);
   const completedCards = lists.reduce(
@@ -13,7 +13,18 @@ export default function BoardHeader({ onOpenEditBoard }) {
 
   return (
     <header className="tt-main-header">
-      <div className="header-title-block">
+      <div className="header-left-cluster">
+        <button
+          type="button"
+          className="mobile-sidebar-toggle-btn"
+          onClick={toggleSidebar}
+          title="Open boards menu"
+          aria-label="Open boards menu"
+        >
+          <Icon name="menu" size={19} />
+        </button>
+
+        <div className="header-title-block">
         <div className="header-title-row">
           <h1 className="header-board-title">
             {selectedBoard ? selectedBoard.name : 'Select a board'}
@@ -58,6 +69,7 @@ export default function BoardHeader({ onOpenEditBoard }) {
             )}
           </div>
         )}
+      </div>
       </div>
 
       <div className="header-right-actions">

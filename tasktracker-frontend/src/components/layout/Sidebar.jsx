@@ -18,8 +18,32 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
+  function handleSelectBoard(boardId) {
+    selectBoard(boardId);
+    if (typeof window !== 'undefined' && window.innerWidth <= 768 && !isSidebarCollapsed) {
+      toggleSidebar();
+    }
+  }
+
+  function handleAddBoardClick() {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768 && !isSidebarCollapsed) {
+      toggleSidebar();
+    }
+    onOpenCreateBoard();
+  }
+
   return (
-    <aside className={`tt-sidebar ${isSidebarCollapsed ? 'collapsed' : 'expanded'}`}>
+    <>
+      {/* Mobile Drawer Overlay Backdrop */}
+      {!isSidebarCollapsed && (
+        <div
+          className="sidebar-mobile-backdrop"
+          onClick={toggleSidebar}
+          aria-label="Close menu"
+        />
+      )}
+
+      <aside className={`tt-sidebar ${isSidebarCollapsed ? 'collapsed' : 'expanded'}`}>
       {/* Sidebar Header */}
       <div className="sidebar-header">
         {!isSidebarCollapsed ? (
@@ -67,7 +91,7 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
                 <button
                   type="button"
                   className={`sidebar-board-item ${isActive ? 'active' : ''}`}
-                  onClick={() => selectBoard(b.id)}
+                  onClick={() => handleSelectBoard(b.id)}
                   title={b.name}
                 >
                   <span className="board-avatar">{initials}</span>
@@ -114,7 +138,7 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
         <button
           type="button"
           className={`sidebar-add-board-btn ${isSidebarCollapsed ? 'collapsed-add-btn' : ''}`}
-          onClick={onOpenCreateBoard}
+          onClick={handleAddBoardClick}
           title="Create New Board"
           aria-label="Create New Board"
         >
@@ -123,5 +147,6 @@ export default function Sidebar({ onOpenCreateBoard, onOpenEditBoard }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }

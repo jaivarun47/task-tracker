@@ -101,7 +101,10 @@ export default function CardItem({ card, listId, index, onEdit }) {
 
       <div className="card-main-content">
         <div className="card-top-row">
-          <label className="card-checkbox-label">
+          <label
+            className="card-checkbox-label"
+            onClick={(e) => e.stopPropagation()}
+          >
             <input
               type="checkbox"
               className="card-checkbox"
@@ -111,11 +114,18 @@ export default function CardItem({ card, listId, index, onEdit }) {
             />
           </label>
 
-          <span className={`card-title ${card.completed ? 'completed' : ''}`} title={card.name}>
+          <span
+            className={`card-title ${card.completed ? 'completed' : ''}`}
+            title={card.name}
+            onClick={() => onEdit(card)}
+          >
             {card.name}
           </span>
 
-          <div className="card-actions">
+          <div
+            className="card-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="card-action-btn"
@@ -138,7 +148,11 @@ export default function CardItem({ card, listId, index, onEdit }) {
         </div>
 
         {card.description ? (
-          <p className="card-description-preview" title={card.description}>
+          <p
+            className="card-description-preview"
+            title={card.description}
+            onClick={() => onEdit(card)}
+          >
             {card.description}
           </p>
         ) : null}

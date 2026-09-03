@@ -149,7 +149,9 @@ export function useMasonryLayout(items = [], options = {}) {
     // Responsive column width: distribute available width across columns evenly
     // width = columnsCount * columnWidth + (columnsCount - 1) * gap
     const availableWidth = width - (columnsCount - 1) * gap;
-    const columnWidth = Math.max(minColumnWidth, Math.floor(availableWidth / columnsCount));
+    const columnWidth = columnsCount === 1
+      ? Math.floor(availableWidth)
+      : Math.min(Math.floor(availableWidth), Math.max(minColumnWidth, Math.floor(availableWidth / columnsCount)));
 
     const colHeights = new Array(columnsCount).fill(0);
     const positions = {};
