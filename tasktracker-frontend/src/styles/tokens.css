@@ -1,0 +1,70 @@
+/* Luxury Blue Design System Tokens */
+:root {
+  /* Exact Source Palette */
+  --color-dark: #00000F;
+  --color-light: #FBFFFF;
+  --color-navy: #002A54;
+  --color-periwinkle: #8AA8FF;
+  --color-orange: #FF9800;
+
+  /* Surfaces */
+  --surface-app: #F4F8FC;
+  --surface-canvas: #EDF3F9;
+  --surface-sidebar: #00000F;
+  --surface-sidebar-hover: rgba(138, 168, 255, 0.08);
+  --surface-sidebar-active: rgba(138, 168, 255, 0.16);
+  --surface-card: #FFFFFF;
+  --surface-card-hover: #FFFFFF;
+  --surface-column: #E5EEF6;
+  --surface-column-header: rgba(0, 42, 84, 0.03);
+  --surface-modal: #FFFFFF;
+  --surface-modal-backdrop: rgba(0, 0, 15, 0.65);
+  --surface-input: #FFFFFF;
+  --surface-toast: #00000F;
+
+  /* Text Colors */
+  --text-primary: #00000F;
+  --text-secondary: rgba(0, 0, 15, 0.70);
+  --text-muted: rgba(0, 0, 15, 0.45);
+  --text-on-dark: #FBFFFF;
+  --text-on-dark-secondary: rgba(251, 255, 255, 0.70);
+  --text-on-dark-muted: rgba(251, 255, 255, 0.45);
+  --text-on-navy: #FBFFFF;
+  --text-accent: #002A54;
+  --text-warning: #C76B00;
+
+  /* Borders & Focus */
+  --border-subtle: rgba(0, 42, 84, 0.10);
+  --border-card: rgba(0, 42, 84, 0.08);
+  --border-card-hover: rgba(0, 42, 84, 0.16);
+  --border-column: rgba(0, 42, 84, 0.12);
+  --border-focus: #8AA8FF;
+  --border-drop-indicator: #8AA8FF;
+  --border-sidebar: rgba(138, 168, 255, 0.12);
+
+  /* Elevation & Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 42, 84, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 42, 84, 0.07), 0 1px 2px rgba(0, 42, 84, 0.04);
+  --shadow-card-hover: 0 6px 16px rgba(0, 42, 84, 0.12), 0 2px 4px rgba(0, 42, 84, 0.04);
+  --shadow-drag: 0 18px 36px rgba(0, 0, 15, 0.22), 0 4px 10px rgba(0, 42, 84, 0.12);
+  --shadow-modal: 0 24px 48px rgba(0, 0, 15, 0.28), 0 8px 16px rgba(0, 42, 84, 0.10);
+  --shadow-column: 0 2px 8px rgba(0, 42, 84, 0.04);
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}

@@ -1,600 +1,166 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import './App.css';
-import Modal from './components/Modal.jsx';
-import * as api from './api/taskApi';
+import { BoardProvider } from './context/BoardContext';
+import { useBoard } from './hooks/useBoard';
+import Sidebar from './components/layout/Sidebar';
+import BoardHeader from './components/layout/BoardHeader';
+import BoardCanvas from './components/kanban/BoardCanvas';
+import { CreateBoardModal, EditBoardModal, DeleteBoardModal } from './components/modals/BoardModal';
+import { CreateListModal, EditListModal, DeleteListModal } from './components/modals/ListModal';
+import { CardModal } from './components/modals/CardModal';
+import { ToastContainer } from './components/common/Toast';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-const COLUMN_BACKGROUNDS = [
-  'rgba(17, 24, 39, 0.16)',
-  'rgba(59, 130, 246, 0.16)',
-  'rgba(16, 185, 129, 0.14)',
-  'rgba(245, 158, 11, 0.16)',
-  'rgba(168, 85, 247, 0.16)',
-];
+function MainApp() {
+  const {
+    selectedBoard,
+    selectedBoardId,
+    lists,
+    activeListId,
+    createBoard,
+    updateBoard,
+    deleteBoard,
+    createList,
+    updateList,
+    deleteList,
+    createCard,
+    updateCard,
+    deleteCard,
+    toasts,
+    removeToast,
+    setActiveListId,
+  } = useBoard();
 
-function App() {
-  const [boards, setBoards] = useState([]);
-  const [selectedBoardId, setSelectedBoardId] = useState(null);
+  // ── Modal State ───────────────────────────────────────────────────────────
+  const [boardModal, setBoardModal] = useState({ type: null, data: null }); // 'create' | 'edit' | 'delete'
+  const [listModal, setListModal] = useState({ type: null, data: null });   // 'create' | 'edit' | 'delete'
+  const [cardModal, setCardModal] = useState({ show: false, listId: null, card: null });
 
-  const [lists, setLists] = useState([]);
-  const [cardsByListId, setCardsByListId] = useState({});
-  const [activeListId, setActiveListId] = useState(null);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Modals
-  const [showCreateBoard, setShowCreateBoard] = useState(false);
-  const [newBoardName, setNewBoardName] = useState('');
-  const [showEditBoard, setShowEditBoard] = useState(false);
-  const [editBoardName, setEditBoardName] = useState('');
-
-  const [showCreateList, setShowCreateList] = useState(false);
-  const [newListName, setNewListName] = useState('');
-
-  const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [cardModalMode, setCardModalMode] = useState('create'); // 'create' | 'edit'
-  const [cardModalListId, setCardModalListId] = useState(null);
-  const [cardModalCard, setCardModalCard] = useState(null);
-  const [cardName, setCardName] = useState('');
-  const [cardDescription, setCardDescription] = useState('');
-  const [cardCompleted, setCardCompleted] = useState(false);
-
-  const [showEditList, setShowEditList] = useState(false);
-  const [editListId, setEditListId] = useState(null);
-  const [editListName, setEditListName] = useState('');
-
-  const [showConfirmDeleteBoard, setShowConfirmDeleteBoard] = useState(false);
-
-  const selectedBoard = useMemo(
-    () => boards.find((b) => b.id === selectedBoardId) || null,
-    [boards, selectedBoardId],
-  );
-
-  async function refreshBoards() {
-    try {
-      const nextBoards = await api.getBoards();
-      setBoards(nextBoards);
-      if (nextBoards.length > 0) {
-        setSelectedBoardId((prev) => (prev && nextBoards.some((b) => b.id === prev) ? prev : nextBoards[0].id));
-      } else {
-        setSelectedBoardId(null);
-      }
-    } catch (e) {
-      if (e?.status === 401) {
-        setBoards([]);
-        setSelectedBoardId(null);
-      }
-      throw e;
-    }
+  function closeAllModals() {
+    setBoardModal({ type: null, data: null });
+    setListModal({ type: null, data: null });
+    setCardModal({ show: false, listId: null, card: null });
+    setActiveListId(null);
   }
 
-  async function refreshBoard(boardId) {
-    setLoading(true);
-    try {
-      const nextLists = await api.getListsByBoard(boardId);
-      setLists(nextLists);
-
-      const pairs = await Promise.all(
-        nextLists.map(async (l) => {
-          const nextCards = await api.getCardsByList(l.id);
-          return [l.id, nextCards];
-        }),
-      );
-      setCardsByListId(Object.fromEntries(pairs));
-      setError(null);
-    } catch (e) {
-      if (e?.status === 401) {
-        setBoards([]);
-        setSelectedBoardId(null);
-        setLists([]);
-        setCardsByListId({});
+  // ── Keyboard Shortcuts ────────────────────────────────────────────────────
+  useKeyboardShortcuts({
+    onEscape: closeAllModals,
+    onCreateBoard: () => setBoardModal({ type: 'create', data: null }),
+    onCreateList: () => {
+      if (selectedBoardId) {
+        setListModal({ type: 'create', data: null });
       }
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    refreshBoards()
-      .catch((e) => {
-        setError(e?.message || 'Failed to load boards');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (selectedBoardId == null) return;
-    refreshBoard(selectedBoardId).catch((e) => setError(e?.message || 'Failed to load board'));
-  }, [selectedBoardId]);
-
-  useEffect(() => {
-    function handleGlobalKeyDown(e) {
-      if (e.key === 'Escape') {
-        setShowCreateBoard(false);
-        setShowEditBoard(false);
-        setShowCreateList(false);
-        setShowEditList(false);
-        setCardModalOpen(false);
-        setShowConfirmDeleteBoard(false);
-        setActiveListId(null);
-        return;
-      }
-
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-      if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        setShowCreateBoard(true);
-        setNewBoardName('');
-      } else if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'n') {
-        e.preventDefault();
-        if (selectedBoardId) {
-          setShowCreateList(true);
-          setNewListName('');
+    },
+    onCreateCard: () => {
+      if (selectedBoardId && lists.length > 0) {
+        const targetList = activeListId && lists.some((l) => l.id === activeListId)
+          ? lists.find((l) => l.id === activeListId)
+          : lists[0];
+        if (targetList) {
+          // Open card creation dialog
+          setCardModal({ show: true, listId: targetList.id, card: { name: '', description: '', completed: false } });
         }
-      } else if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'n') {
-        e.preventDefault();
-        if (selectedBoardId && lists.length > 0) {
-          const targetListId = activeListId && lists.some(l => l.id === activeListId) ? activeListId : lists[0].id;
-          openCreateCard(targetListId);
-        }
-      } else if (e.altKey && e.shiftKey && e.key === 'Delete') {
-        e.preventDefault();
-        setShowConfirmDeleteBoard(true);
       }
-    }
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [selectedBoardId, lists, activeListId]);
-
-  function openCreateCard(listId) {
-    setCardModalMode('create');
-    setCardModalListId(listId);
-    setCardModalCard(null);
-    setCardName('');
-    setCardDescription('');
-    setCardCompleted(false);
-    setCardModalOpen(true);
-  }
-
-  function openEditCard(listId, card) {
-    setCardModalMode('edit');
-    setCardModalListId(listId);
-    setCardModalCard(card);
-    setCardName(card?.name || '');
-    setCardDescription(card?.description || '');
-    setCardCompleted(Boolean(card?.completed));
-    setCardModalOpen(true);
-  }
-
-  function openEditList(list) {
-    setShowEditList(true);
-    setEditListId(list.id);
-    setEditListName(list.name || '');
-  }
-
-  async function handleCreateBoard() {
-    const name = newBoardName.trim();
-    if (!name) return;
-    await api.createBoard(name);
-    setShowCreateBoard(false);
-    setNewBoardName('');
-    await refreshBoards();
-  }
-
-  async function handleUpdateBoard() {
-    if (!selectedBoardId) return;
-    const name = editBoardName.trim();
-    if (!name) return;
-    await api.updateBoard(selectedBoardId, name);
-    setShowEditBoard(false);
-    setEditBoardName('');
-    await refreshBoards();
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleDeleteBoard() {
-    if (!selectedBoardId) return;
-    await api.deleteBoard(selectedBoardId);
-    setShowConfirmDeleteBoard(false);
-    setShowEditBoard(false);
-    await refreshBoards();
-  }
-
-  async function handleCreateList() {
-    if (!selectedBoardId) return;
-    const name = newListName.trim();
-    if (!name) return;
-    await api.createCardList(selectedBoardId, name);
-    setShowCreateList(false);
-    setNewListName('');
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleUpdateList() {
-    if (!selectedBoardId || !editListId) return;
-    const name = editListName.trim();
-    if (!name) return;
-    await api.updateCardList(selectedBoardId, editListId, name);
-    setShowEditList(false);
-    setEditListId(null);
-    setEditListName('');
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleDeleteList(listId) {
-    if (!selectedBoardId) return;
-    await api.deleteCardList(selectedBoardId, listId);
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleCreateOrUpdateCard() {
-    if (!cardModalListId) return;
-    const name = cardName.trim();
-    if (!name) return;
-
-    const payload = {
-      name,
-      // Use empty-string (not null) so backend update can treat it as "blank" and apply its default.
-      description: cardDescription.trim(),
-      completed: cardModalMode === 'edit' ? cardCompleted : false,
-    };
-
-    if (cardModalMode === 'create') {
-      await api.createCard(cardModalListId, payload);
-    } else {
-      await api.updateCard(cardModalListId, cardModalCard.id, payload);
-    }
-
-    setCardModalOpen(false);
-    setCardModalCard(null);
-    setCardModalListId(null);
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleToggleCardCompleted(listId, card) {
-    await api.updateCard(listId, card.id, {
-      name: card.name,
-      description: card.description,
-      completed: !card.completed,
-    });
-    await refreshBoard(selectedBoardId);
-  }
-
-  async function handleDeleteCard(listId, cardId) {
-    await api.deleteCard(listId, cardId);
-    await refreshBoard(selectedBoardId);
-  }
+    },
+    onDeleteBoard: () => {
+      if (selectedBoard) {
+        setBoardModal({ type: 'delete', data: selectedBoard });
+      }
+    },
+  });
 
   return (
-    <div className="tt-root">
-      <div className="tt-shell">
-        <aside className="tt-sidebar">
-          <div className="tt-sidebar-header">
-            <div className="tt-brand">TaskTracker</div>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => {
-                setShowCreateBoard(true);
-                setNewBoardName('');
-              }}
-            >
-              Create
-            </button>
-          </div>
+    <div className="tt-app-root">
+      <Sidebar
+        onOpenCreateBoard={() => setBoardModal({ type: 'create', data: null })}
+        onOpenEditBoard={(board) => setBoardModal({ type: 'edit', data: board })}
+      />
 
-          <div className="tt-sidebar-section">
-            <div className="tt-sidebar-title">Boards</div>
-            <div className="tt-boards-list" role="list">
-              {boards.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  className={`tt-board-item ${b.id === selectedBoardId ? 'active' : ''}`}
-                  onClick={() => setSelectedBoardId(b.id)}
-                >
-                  {b.name}
-                </button>
-              ))}
-              {boards.length === 0 ? <div className="tt-muted">No boards yet. Create one.</div> : null}
-            </div>
-          </div>
+      <div className="tt-content-wrapper">
+        <BoardHeader
+          onOpenEditBoard={(board) => setBoardModal({ type: 'edit', data: board })}
+        />
 
-          {selectedBoard ? (
-            <div className="tt-sidebar-footer">
-              <div className="tt-sidebar-footer-row">
-                <span className="tt-muted">Selected</span>
-                <span className="tt-sidebar-selected">{selectedBoard.name}</span>
-              </div>
-              <div className="tt-sidebar-footer-actions">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-light w-100"
-                  onClick={() => {
-                    setShowEditBoard(true);
-                    setEditBoardName(selectedBoard.name || '');
-                  }}
-                >
-                  Edit board
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </aside>
-
-        <main className="tt-main">
-          <div className="tt-main-header">
-            <div>
-              <div className="tt-main-title">
-                {selectedBoard ? selectedBoard.name : 'Select a board'}
-              </div>
-              <div className="tt-main-subtitle">{loading ? 'Loading…' : 'Manage lists and cards'}</div>
-            </div>
-            {selectedBoard ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-primary"
-                onClick={() => {
-                  setShowCreateList(true);
-                  setNewListName('');
-                }}
-              >
-                + Add another list
-              </button>
-            ) : null}
-          </div>
-
-          {error ? <div className="alert alert-danger tt-alert">{error}</div> : null}
-
-          {!selectedBoardId ? (
-            <div className="tt-empty">Create a board to get started.</div>
-          ) : (
-            <div className="tt-columns" aria-busy={loading}>
-              {lists.map((list, idx) => (
-                <section
-                  key={list.id}
-                  className={`tt-column ${activeListId === list.id ? 'focus' : ''}`}
-                  style={{ background: COLUMN_BACKGROUNDS[idx % COLUMN_BACKGROUNDS.length] }}
-                  onClick={() => setActiveListId(list.id)}
-                >
-                  <div className="tt-col-header">
-                    <div className="tt-col-title">{list.name}</div>
-                    <div className="tt-col-actions">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-link tt-icon-btn"
-                        aria-label="Edit list"
-                        onClick={() => openEditList(list)}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-link tt-icon-btn"
-                        aria-label="Delete list"
-                        onClick={() => handleDeleteList(list.id)}
-                      >
-                        ⓧ
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="tt-cards">
-                    {(cardsByListId[list.id] || []).map((card) => (
-                      <div key={card.id} className="tt-card">
-                        <div className="tt-card-top">
-                          <input
-                            type="checkbox"
-                            className="tt-card-check"
-                            checked={Boolean(card.completed)}
-                            onChange={() => handleToggleCardCompleted(list.id, card)}
-                            aria-label="Mark completed"
-                          />
-                          <div
-                            className={`tt-card-title ${card.completed ? 'completed' : ''}`}
-                            title={card.name}
-                          >
-                            {card.name}
-                          </div>
-                          <div className="tt-card-actions">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-link tt-icon-btn"
-                              onClick={() => openEditCard(list.id, card)}
-                              aria-label="Edit card"
-                            >
-                              ✎
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-link tt-icon-btn"
-                              onClick={() => handleDeleteCard(list.id, card.id)}
-                              aria-label="Delete card"
-                            >
-                              ⓧ
-                            </button>
-                          </div>
-                        </div>
-                        {card.description ? <div className="tt-card-desc">{card.description}</div> : null}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="tt-add-card"
-                    onClick={() => openCreateCard(list.id)}
-                  >
-                    + Add a card
-                  </button>
-                </section>
-              ))}
-
-              <section className="tt-column tt-column-dashed">
-                <button type="button" className="tt-add-list-btn" onClick={() => setShowCreateList(true)}>
-                  + Add another list
-                </button>
-              </section>
-            </div>
-          )}
+        <main className="tt-canvas-container">
+          <BoardCanvas
+            onOpenCreateList={() => setListModal({ type: 'create', data: null })}
+            onOpenEditList={(list) => setListModal({ type: 'edit', data: list })}
+            onOpenDeleteList={(list) => setListModal({ type: 'delete', data: list })}
+            onOpenEditCard={(listId, card) => setCardModal({ show: true, listId, card })}
+          />
         </main>
       </div>
 
-      <Modal show={showCreateBoard} title="Create board" onClose={() => setShowCreateBoard(false)}>
-        <div className="mb-3">
-          <label className="form-label">Board name</label>
-          <input
-            className="form-control"
-            value={newBoardName}
-            onChange={(e) => setNewBoardName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateBoard()}
-            placeholder="e.g. My board"
-          />
-        </div>
-        <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setShowCreateBoard(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleCreateBoard}>
-            Create
-          </button>
-        </div>
-      </Modal>
+      {/* Board Modals */}
+      <CreateBoardModal
+        show={boardModal.type === 'create'}
+        onClose={() => setBoardModal({ type: null, data: null })}
+        onSubmit={createBoard}
+      />
 
-      <Modal show={showEditBoard} title="Edit board" onClose={() => setShowEditBoard(false)}>
-        <div className="mb-3">
-          <label className="form-label">Board name</label>
-          <input
-            className="form-control"
-            value={editBoardName}
-            onChange={(e) => setEditBoardName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleUpdateBoard()}
-            placeholder="Board name"
-          />
-        </div>
-        <div className="d-flex justify-content-between gap-2">
-          <button type="button" className="btn btn-outline-danger" onClick={() => setShowConfirmDeleteBoard(true)}>
-            Delete board
-          </button>
-          <div className="d-flex gap-2">
-            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowEditBoard(false)}>
-              Cancel
-            </button>
-            <button type="button" className="btn btn-primary" onClick={handleUpdateBoard}>
-              Save
-            </button>
-          </div>
-        </div>
-      </Modal>
+      <EditBoardModal
+        show={boardModal.type === 'edit'}
+        board={boardModal.data}
+        onClose={() => setBoardModal({ type: null, data: null })}
+        onUpdate={updateBoard}
+        onDeleteClick={() => setBoardModal({ type: 'delete', data: boardModal.data })}
+      />
 
-      <Modal show={showConfirmDeleteBoard} title="Delete Board?" onClose={() => setShowConfirmDeleteBoard(false)}>
-        <p className="mb-3 text-white">Are you sure you want to permanently delete this board and all of its lists and cards?</p>
-        <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setShowConfirmDeleteBoard(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary bg-danger border-danger" onClick={handleDeleteBoard}>
-            Yes, Delete It
-          </button>
-        </div>
-      </Modal>
+      <DeleteBoardModal
+        show={boardModal.type === 'delete'}
+        board={boardModal.data}
+        onClose={() => setBoardModal({ type: null, data: null })}
+        onConfirm={deleteBoard}
+      />
 
-      <Modal show={showCreateList} title="Create list" onClose={() => setShowCreateList(false)}>
-        <div className="mb-3">
-          <label className="form-label">List name</label>
-          <input
-            className="form-control"
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
-            placeholder="e.g. In Progress"
-          />
-        </div>
-        <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setShowCreateList(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleCreateList}>
-            Create
-          </button>
-        </div>
-      </Modal>
+      {/* List Modals */}
+      <CreateListModal
+        show={listModal.type === 'create'}
+        onClose={() => setListModal({ type: null, data: null })}
+        onSubmit={createList}
+      />
 
-      <Modal show={showEditList} title="Edit list" onClose={() => setShowEditList(false)}>
-        <div className="mb-3">
-          <label className="form-label">List name</label>
-          <input
-            className="form-control"
-            value={editListName}
-            onChange={(e) => setEditListName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleUpdateList()}
-            placeholder="List name"
-          />
-        </div>
-        <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setShowEditList(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleUpdateList}>
-            Save
-          </button>
-        </div>
-      </Modal>
+      <EditListModal
+        show={listModal.type === 'edit'}
+        list={listModal.data}
+        onClose={() => setListModal({ type: null, data: null })}
+        onUpdate={updateList}
+        onDeleteClick={() => setListModal({ type: 'delete', data: listModal.data })}
+      />
 
-      <Modal
-        show={cardModalOpen}
-        title={cardModalMode === 'create' ? 'Add card' : 'Edit card'}
-        onClose={() => setCardModalOpen(false)}
-      >
-        <div className="mb-3">
-          <label className="form-label">Name</label>
-          <input
-            className="form-control"
-            value={cardName}
-            onChange={(e) => setCardName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateOrUpdateCard()}
-            placeholder="e.g. Write tests"
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Description</label>
-          <textarea
-            className="form-control"
-            rows={3}
-            value={cardDescription}
-            onChange={(e) => setCardDescription(e.target.value)}
-            placeholder="Optional details"
-          />
-        </div>
-        {cardModalMode === 'edit' ? (
-          <div className="form-check mb-3">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              checked={cardCompleted}
-              onChange={(e) => setCardCompleted(e.target.checked)}
-              id="cardCompleted"
-            />
-            <label className="form-check-label" htmlFor="cardCompleted">
-              Completed
-            </label>
-          </div>
-        ) : null}
-        <div className="d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setCardModalOpen(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleCreateOrUpdateCard}>
-            {cardModalMode === 'create' ? 'Add card' : 'Save changes'}
-          </button>
-        </div>
-      </Modal>
+      <DeleteListModal
+        show={listModal.type === 'delete'}
+        list={listModal.data}
+        onClose={() => setListModal({ type: null, data: null })}
+        onConfirm={deleteList}
+      />
+
+      {/* Card Detail Modal */}
+      <CardModal
+        show={cardModal.show}
+        card={cardModal.card}
+        onClose={() => setCardModal({ show: false, listId: null, card: null })}
+        onSave={(cardId, fields) => {
+          if (cardModal.card?.id) {
+            return updateCard(cardModal.listId, cardId, fields);
+          } else {
+            return createCard(cardModal.listId, fields);
+          }
+        }}
+        onDelete={cardModal.card?.id ? (cardId) => deleteCard(cardModal.listId, cardId) : null}
+      />
+
+      {/* Toast Feedback */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BoardProvider>
+      <MainApp />
+    </BoardProvider>
+  );
+}

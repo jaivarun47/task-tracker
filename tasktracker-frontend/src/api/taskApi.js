@@ -1,5 +1,5 @@
 import { apiRequest } from './apiClient';
-import { hasToken, setToken, clearToken } from './sessionManager';
+import { hasToken, setToken } from './sessionManager';
 
 export { hasToken, clearToken } from './sessionManager';
 
@@ -62,6 +62,23 @@ export async function deleteCardList(boardId, listId) {
   return apiRequest(`/api/boards/${boardId}/lists/${listId}`, { method: 'DELETE' });
 }
 
+/**
+ * Move a CardList within a board (reorder) or across boards.
+ *
+ * @param {number} boardId - Current (source) board ID
+ * @param {number} listId - ID of the CardList to move
+ * @param {Object} options
+ * @param {number} options.targetBoardId - Destination board ID (same for reorder)
+ * @param {number} options.position - Zero-based target position index
+ * @returns {Promise<Object>} Updated CardListDto from backend
+ */
+export async function moveCardList(boardId, listId, { targetBoardId, position }) {
+  return apiRequest(`/api/boards/${boardId}/lists/${listId}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify({ targetBoardId, position }),
+  });
+}
+
 export async function getCardsByList(listId) {
   return apiRequest(`/api/lists/${listId}/cards`, { method: 'GET' });
 }
@@ -82,6 +99,23 @@ export async function updateCard(listId, cardId, { name, description, completed 
 
 export async function deleteCard(listId, cardId) {
   return apiRequest(`/api/lists/${listId}/cards/${cardId}`, { method: 'DELETE' });
+}
+
+/**
+ * Move a Card within a list (reorder) or across lists (and boards).
+ *
+ * @param {number} listId - Current (source) list ID
+ * @param {number} cardId - ID of the Card to move
+ * @param {Object} options
+ * @param {number} options.targetListId - Destination list ID (same for reorder)
+ * @param {number} options.position - Zero-based target position index
+ * @returns {Promise<Object>} Updated CardDto from backend
+ */
+export async function moveCard(listId, cardId, { targetListId, position }) {
+  return apiRequest(`/api/lists/${listId}/cards/${cardId}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify({ targetListId, position }),
+  });
 }
 
 export async function getCardById(listId, cardId) {
